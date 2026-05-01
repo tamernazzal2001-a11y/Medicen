@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>نظام إدارة الأدوية</title>
+
+<style>
+body {
+    font-family: Arial;
+    margin: 0;
+    background: #f4f6f9;
+}
+
+header {
+    background: #007BFF;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-size: 22px;
+}
+
+.container {
+    width: 95%;
+    margin: 20px auto;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+input {
+    padding: 10px;
+    width: 250px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.add-btn {
+    background: green;
+    color: white;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background: white;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+th {
+    background: #007BFF;
+    color: white;
+}
+
+.actions button {
+    margin: 2px;
+}
+
+.edit { background: orange; color: white; }
+.delete { background: red; color: white; }
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; right: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    width: 400px;
+    border-radius: 10px;
+}
+
+.modal-content input {
+    width: 100%;
+    margin: 5px 0;
+}
+
+.close {
+    float: left;
+    cursor: pointer;
+    color: red;
+    font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<header>💊 نظام إدارة الأدوية</header>
+
+<div class="container">
+
+<div class="top-bar">
+    <input type="text" id="search" placeholder="🔍 بحث عن دواء...">
+    <button class="add-btn" onclick="openModal()">+ إضافة دواء</button>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>التجاري</th>
+            <th>العلمي</th>
+            <th>التركيز</th>
+            <th>الجرعة</th>
+            <th>ملاحظات</th>
+            <th>التحكم</th>
+        </tr>
+    </thead>
+    <tbody id="table"></tbody>
+</table>
+
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+<div class="modal-content">
+    <span class="close" onclick="closeModal()">✖</span>
+
+    <h3 id="modalTitle">إضافة دواء</h3>
+
+    <input type="text" id="trade" placeholder="الاسم التجاري">
+    <input type="text" id="scientific" placeholder="الاسم العلمي">
+    <input type="text" id="concentration" placeholder="التركيز">
+    <input type="text" id="dose" placeholder="الجرعة">
+    <input type="text" id="notes" placeholder="ملاحظات">
+
+    <button class="add-btn" onclick="saveDrug()">حفظ</button>
+</div>
+</div>
+
+<script>
+let drugs = JSON.parse(localStorage.getItem("drugs")) || [];
+let editId = null;
+
+function saveToStorage() {
+    localStorage.setItem("drugs", JSON.stringify(drugs));
+}
+
+function render(data = drugs) {
+    let table = document.getElementById("table");
+    table.innerHTML = "";
+
+    data.forEach(drug => {
+        table.innerHTML += `
+        <tr>
+            <td>${drug.trade}</td>
+            <td>${drug.scientific}</td>
+            <td>${drug.concentration}</td>
+            <td>${drug.dose}</td>
+            <td>${drug.notes}</td>
+            <td class="actions">
+                <button class="edit" onclick="editDrug('${drug.id}')">تعديل</button>
+                <button class="delete" onclick="deleteDrug('${drug.id}')">حذف</button>
+            </td>
+        </tr>`;
+    });
+}
+
+function openModal() {
+    document.getElementById("modal").style.display = "flex";
+    clearForm();
+    editId = null;
+}
+
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+
+function clearForm() {
+    document.getElementById("trade").value = "";
+    document.getElementById("scientific").value = "";
+    document.getElementById("concentration").value = "";
+    document.getElementById("dose").value = "";
+    document.getElementById("notes").value = "";
+}
+
+function saveDrug() {
+    let trade = document.getElementById("trade").value;
+    let scientific = document.getElementById("scientific").value;
+    let concentration = document.getElementById("concentration").value;
+    let dose = document.getElementById("dose").value;
+    let notes = document.getElementById("notes").value;
+
+    if (!trade || !scientific) {
+        alert("الاسم التجاري والعلمي مطلوبان");
+        return;
+    }
+
+    if (editId) {
+        let index = drugs.findIndex(d => d.id === editId);
+        drugs[index] = { id: editId, trade, scientific, concentration, dose, notes };
+    } else {
+        drugs.push({
+            id: Date.now().toString(),
+            trade,
+            scientific,
+            concentration,
+            dose,
+            notes
+        });
+    }
+
+    saveToStorage();
+    render();
+    closeModal();
+}
+
+function deleteDrug(id) {
+    if (confirm("هل تريد حذف الدواء؟")) {
+        drugs = drugs.filter(d => d.id !== id);
+        saveToStorage();
+        render();
+    }
+}
+
+function editDrug(id) {
+    let drug = drugs.find(d => d.id === id);
+
+    document.getElementById("trade").value = drug.trade;
+    document.getElementById("scientific").value = drug.scientific;
+    document.getElementById("concentration").value = drug.concentration;
+    document.getElementById("dose").value = drug.dose;
+    document.getElementById("notes").value = drug.notes;
+
+    editId = id;
+    document.getElementById("modal").style.display = "flex";
+}
+
+document.getElementById("search").addEventListener("input", function() {
+    let value = this.value.toLowerCase();
+
+    let filtered = drugs.filter(d =>
+        d.trade.toLowerCase().includes(value) ||
+        d.scientific.toLowerCase().includes(value) ||
+        d.concentration.toLowerCase().includes(value) ||
+        d.notes.toLowerCase().includes(value)
+    );
+
+    render(filtered);
+});
+
+render();
+</script>
+
+</body>
+</html>
